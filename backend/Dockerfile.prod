@@ -1,0 +1,30 @@
+FROM node:18-alpine
+
+RUN npm install -g pnpm
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
+
+COPY src/ ./src/
+COPY prisma/ ./prisma/
+COPY tsconfig.json ./
+
+RUN pnpm prisma generate
+
+RUN pnpm build
+
+RUN cp -r src/generated dist/
+
+COPY public/ ./public/
+
+RUN rm -rf src/ tsconfig.json
+
+RUN mkdir -p /app/data
+
+ARG BACKEND_PORT
+EXPOSE ${BACKEND_PORT}
+
+CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/index.js"]
